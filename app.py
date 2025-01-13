@@ -4,7 +4,9 @@ import joblib
 import os
 from dotenv import load_dotenv
 from groq import Groq
-import asyncio
+from sklearn.inspection import PartialDependenceDisplay
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Load the environment variables
 load_dotenv()
@@ -57,10 +59,14 @@ system_prompt = """
     You will be given the user input and the predicted ESG risk score (predicted by the model developed by the data scientists).
     You have to suggest if the company is good for investing and how to improve the ESG risk score of the company based on the user input.
     Do not include text like "here is your output" or "here is the prediction" in your response. Respond like how a human will answer a question.
+    Do not make your suggestion too technical. Keep it simple and easy to understand. Do not mention any values or numbers in your suggestion.
 """
 
 # Load the trained random forest regressor model
 model = joblib.load('models/model.pkl')
+
+# Load the dataset
+df = pd.read_csv('data/esgdata_cleaned.csv')
 
 # Define the input fields
 st.title("ESG Risk Score Prediction")
@@ -135,7 +141,7 @@ expected_features = model.feature_names_in_
 user_input_ordered = {feature: user_input[feature] for feature in expected_features}
 
 def get_prediction_and_suggestion():
-    prediction = model.predict(pd.DataFrame(user_input_ordered))[0]
+    xgb_prediction = round(model.predict(pd.DataFrame(user_input_ordered))[0], 4)
     llama_suggestion = client.chat.completions.create(
         messages=[
             {
@@ -144,16 +150,35 @@ def get_prediction_and_suggestion():
             },
             {
                 "role": "user",
-                "content": f"User input: {user_input_ordered}. Predicted ESG risk score: {prediction}"
+                "content": f"User input: {user_input_ordered}. Predicted ESG risk score: {xgb_prediction}"
             }
         ],
         model=groq_model,
     )
     llama_suggestion = llama_suggestion.choices[0].message.content
-    return prediction, llama_suggestion
+    return xgb_prediction, llama_suggestion
 
+# Prediction section
 if st.button("Predict"):
     with st.spinner("Calculating..."):
-        prediction, llama_suggestion = get_prediction_and_suggestion()
-        st.write(f"Predicted ESG Risk Score: {prediction}")
-        st.write(f"Suggestion: {llama_suggestion}")
+        xgb_prediction, llama_suggestion = get_prediction_and_suggestion()
+        st.session_state.prediction = xgb_prediction
+        st.session_state.llama_suggestion = llama_suggestion
+
+if 'prediction' in st.session_state:
+    st.write(f"Predicted ESG Risk Score: {st.session_state.prediction:.4f}")
+    st.write(f"Suggestion: {st.session_state.llama_suggestion}")
+
+# Partial Dependence Plot section
+st.title("Partial Dependence Plot")
+
+feature_to_plot = st.selectbox("Select feature for PDP", expected_features)
+
+if st.button("Generate PDP"):
+    with st.spinner("Generating..."):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        PartialDependenceDisplay.from_estimator(model, df[expected_features], [feature_to_plot], ax=ax)
+        st.session_state.pdp_fig = fig
+
+if 'pdp_fig' in st.session_state:
+    st.pyplot(st.session_state.pdp_fig)
