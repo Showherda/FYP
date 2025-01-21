@@ -76,6 +76,7 @@ col1, col2 = st.columns(2)
 
 # Define mapping dictionaries
 SDG_target_mapping = {'E': 0, 'EG': 1, 'ES': 2, 'ESG': 3, 'G': 4, 'S': 5, 'SG': 6}
+binary_features = ['Issue_green_bonds', 'Dow_jones_sustainability_index', 'Recycling', 'Energy_conservation', 'Climate_change_policy', 'Water_treatment', 'Biodiversity', 'CSR_commitee', 'Waste_management', 'Net_zero_targets', 'Disclosure_of_R&D', 'Planning_zero_carbon', 'Govt_collaboration', 'Renewal_energy']
 binary_mapping = {'No': 0, 'Yes': 1}
 
 with col1:
@@ -95,17 +96,17 @@ with col1:
     Renewal_energy = binary_mapping[st.selectbox("Renewal Energy", ["No", "Yes"])]
 
 with col2:
-    Environmental_scores = st.number_input("Environmental Scores")
-    Controversy_level = st.number_input("Controversy Level")
+    Environmental_scores = st.number_input("Environmental Scores", min_value=0.0)
+    Controversy_level = st.number_input("Controversy Level", min_value=0.0)
     Indirect_carbon_emissions = st.number_input("Indirect Carbon Emissions")
     Direct_carbon_emissions = st.number_input("Direct Carbon Emissions")
-    Disclosure_scores = st.number_input("Disclosure Scores")
+    Disclosure_scores = st.number_input("Disclosure Scores", min_value=0.0)
     MSCI_ESG_index = st.selectbox("MSCI ESG Index", [0, 1, 2, 3])
-    GHG_sales = st.number_input("GHG Sales")
+    GHG_sales = st.number_input("GHG Sales", min_value=0.0)
     SDG_targets = SDG_target_mapping[st.selectbox("SDG Targets", SDG_target_mapping)]
     Total_carbon_emissions = st.number_input("Total Carbon Emissions")
     CSR_board_size = st.number_input("CSR Board Size", step=1)
-    ESG_funds = st.number_input("ESG Funds")
+    ESG_funds = st.number_input("ESG Funds", min_value=0.0)
     Scope3_carbon_emissions = st.number_input("Scope3 Carbon Emissions")
 
 user_input = {
@@ -177,7 +178,17 @@ feature_to_plot = st.selectbox("Select feature for PDP", expected_features)
 if st.button("Generate PDP"):
     with st.spinner("Generating..."):
         fig, ax = plt.subplots(figsize=(10, 6))
-        PartialDependenceDisplay.from_estimator(model, df[expected_features], [feature_to_plot], ax=ax)
+        if feature_to_plot == 'SDG_targets':
+            PartialDependenceDisplay.from_estimator(model, df[expected_features], [feature_to_plot], ax=ax)
+            ax.set_xticks(list(SDG_target_mapping.values()))
+            ax.set_xticklabels(list(SDG_target_mapping.keys()), rotation=45, ha='right')
+        elif feature_to_plot in binary_features:
+            PartialDependenceDisplay.from_estimator(model, df[expected_features], [feature_to_plot], ax=ax)
+            ax.set_xticks([0, 1])
+            ax.set_xticklabels(['No', 'Yes'])
+        else:
+            PartialDependenceDisplay.from_estimator(model, df[expected_features], [feature_to_plot], ax=ax)
+        fig.tight_layout()
         st.session_state.pdp_fig = fig
 
 if 'pdp_fig' in st.session_state:
