@@ -76,7 +76,9 @@ col1, col2 = st.columns(2)
 
 # Define mapping dictionaries
 SDG_target_mapping = {'E': 0, 'EG': 1, 'ES': 2, 'ESG': 3, 'G': 4, 'S': 5, 'SG': 6}
-binary_features = ['Issue_green_bonds', 'Dow_jones_sustainability_index', 'Recycling', 'Energy_conservation', 'Climate_change_policy', 'Water_treatment', 'Biodiversity', 'CSR_commitee', 'Waste_management', 'Net_zero_targets', 'Disclosure_of_R&D', 'Planning_zero_carbon', 'Govt_collaboration', 'Renewal_energy']
+binary_features = ['Issue_green_bonds', 'Dow_jones_sustainability_index', 'Recycling', 'Energy_conservation',\
+                   'Climate_change_policy', 'Water_treatment', 'Biodiversity', 'CSR_commitee', 'Waste_management',\
+                    'Net_zero_targets', 'Disclosure_of_R&D', 'Planning_zero_carbon', 'Govt_collaboration', 'Renewal_energy']
 binary_mapping = {'No': 0, 'Yes': 1}
 
 with col1:
